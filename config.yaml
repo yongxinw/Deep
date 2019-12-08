@@ -1,0 +1,5 @@
+resnet_depth                     : 50
+resnet_pretrained                : True
+
+max_epochs                       : 20
+validate_every_epoch             : 1

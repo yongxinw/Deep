@@ -10,8 +10,21 @@ import os.path as osp
 import numpy as np
 import random
 
+
+class DummyDataset(Dataset):
+    def __init__(self, image_dir, label_file, grid_resolution, val_size=1, val=False):
+        super(DummyDataset, self).__init__()
+        self.length = 1000
+
+    def __len__(self):
+        return self.length
+
+    def __getitem__(self, index):
+        return {"image": torch.randn(3, 500, 500), "grid_label": torch.randn(1, 2048)}
+
+
 class VPDataset(Dataset):
-    def __init__(self, image_dir, label_file, grid_resolution, val_size=10000, val=False):
+    def __init__(self, image_dir, label_file, grid_resolution, val_size=1, val=False):
         super(VPDataset, self).__init__()
         self.image_dir = image_dir
         np.random.seed(1)
@@ -21,10 +34,13 @@ class VPDataset(Dataset):
         val_index = np.arange(len(self.image_names) - val_size, len(self.image_names))
         train_index = np.arange(0, len(self.image_names) - val_size)
 
+        import ipdb
+        ipdb.set_trace()
+
         if val:
-            self.image_names = self.image_names[val_index]
+            self.image_names = np.array(self.image_names)[val_index]
         else:
-            self.image_names = self.image_names[train_index]
+            self.image_names = np.array(self.image_names)[train_index]
 
         self.labels = self.read_json(label_file)
         self.grid_resolution = grid_resolution
@@ -69,11 +85,12 @@ class VPDataset(Dataset):
         return {"image": image, "grid_label": grid_label}
 
 
-def get_dataloader(image_dir, label_file, grid_resolution, **kwargs):
-    train_set = VPDataset(image_dir, label_file, grid_resolution, val=False)
+def get_dataloader(image_dir, label_path, grid_resolution, dummy=False, **kwargs):
+    dset_func = DummyDataset if dummy else VPDataset
+    train_set = dset_func(image_dir, label_path, grid_resolution, val=False)
     train_loader = DataLoader(train_set, **kwargs)
 
-    val_set = VPDataset(image_dir, label_file, grid_resolution, val=True)
+    val_set = dset_func(image_dir, label_path, grid_resolution, val=True)
     val_loader = DataLoader(val_set, **kwargs)
     return train_loader, val_loader
 
@@ -81,7 +98,7 @@ def get_dataloader(image_dir, label_file, grid_resolution, **kwargs):
 if __name__ == "__main__":
     # dset = VPDataset(image_dir="./images", label_file="dummy.json", grid_resolution=[64, 64])
     # item = dset[0]
-    loader = get_dataloader(image_dir="./images", label_file="dummy.json", grid_resolution=[64, 64],
+    loader = get_dataloader(image_dir="./images", label_path="dummy.json", grid_resolution=[64, 64],
                             batch_size=2, num_workers=2)
 
     for batch, data in enumerate(loader):

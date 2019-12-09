@@ -44,11 +44,12 @@ class Trainer:
 
     def setup_data(self):
         train_loader, val_loader = get_dataloader(image_dir=self.config.image_dir,
-                                                  label_file=self.config.label_file,
+                                                  label_path=self.config.label_path,
                                                   grid_resolution=self.config.grid_resolution,
                                                   batch_size=self.config.batch_size,
                                                   num_workers=self.config.num_workers,
-                                                  shuffle=self.config.shuffle)
+                                                  shuffle=self.config.shuffle,
+                                                  dummy=True)
         return train_loader, val_loader
 
     def setup_logs(self):

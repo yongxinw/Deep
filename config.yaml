@@ -1,5 +1,18 @@
+########################### Network Setting ############################
 resnet_depth                     : 50
 resnet_pretrained                : True
-
+resnet_usebn                     : True
+###########################  Train Setting  ############################
+lr                               : 1e-3
+weight_decay                     : 1e-5
+bce_pos_weight                   : 20
 max_epochs                       : 20
-validate_every_epoch             : 1
+save_every_epoch                 : 1
+log_every_iter                   : 100
+########################### Dataset Setting ############################
+image_dir                        : "./images"
+label_path                       : "dummy.json"
+grid_resolution                  : [64, 64]
+batch_size                       : 32
+num_workers                      : 2
+shuffle                          : False

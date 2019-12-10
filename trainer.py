@@ -39,7 +39,7 @@ class Trainer:
         return optim
 
     def setup_loss(self):
-        criterion = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([self.config.bce_pos_weight])).to(device)
+        criterion = nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([self.config.bce_pos_weight])).to(device)
         return criterion
 
     def setup_data(self):
@@ -53,6 +53,10 @@ class Trainer:
         return train_loader, val_loader
 
     def setup_logs(self):
+        """
+        Set up log directory and loggers
+        :return:
+        """
         exp_dir = osp.join(self.args.log_dir, self.args.experiment_name)
         model_save_dir = osp.join(exp_dir, "checkpoints")
         tb_log_dir = osp.join(exp_dir, "tb_logs")
@@ -65,11 +69,15 @@ class Trainer:
         tb_writer = tensorboardX.SummaryWriter(osp.join(tb_log_dir, 'train'))
         val_tb_writer = tensorboardX.SummaryWriter(osp.join(tb_log_dir, 'val'))
         log_file = open(osp.join(exp_dir, "logs-{}.log".format(time_for_file())), 'w')
-        log_file.close()
 
         return model_save_dir, tb_writer, val_tb_writer, log_file
 
     def save_model(self, ep):
+        """
+        Save model
+        :param ep:
+        :return:
+        """
         save_path = osp.join(self.model_save_dir, "net_{:02d}.pth".format(ep))
         save_opt_path = osp.join(self.model_save_dir, "opt_{:02d}.pth".format(ep))
         torch.save(self.model.state_dict(), save_path)
@@ -93,6 +101,10 @@ class Trainer:
         print_log(print_str, log=self.log_file, pbar=pbar)
 
     def train(self):
+        """
+        Training method
+        :return:
+        """
         ep_pbar = tqdm(range(self.config.max_epochs))
 
         # to train mode
@@ -114,7 +126,8 @@ class Trainer:
                 self.optimizer.step()
 
                 Loss.update(loss.item())
-                loss_dict['Loss/total_loss'] = "\t{:s} {:.4f} ({:.4f})".format("total_loss", loss.item, Loss.avg)
+                loss_dict['Loss/total_loss'] = ("\t{:s} {:.4f} ({:.4f})".format("total_loss", loss.item(), Loss.avg),
+                                                Loss.avg)
 
                 if batch % self.config.log_every_iter == 0:
                     it = ep * len(self.train_loader) + batch
@@ -132,19 +145,26 @@ class Trainer:
                 self.model.train()
 
     def val(self, it, pbar):
+        """
+        Validation method
+        :param it:
+        :param pbar:
+        :return:
+        """
         # keeping the losses for log
         loss_dict = {}
         Loss = AverageMeter()
         global_time = time.time()
 
         for batch, data in enumerate(tqdm(self.val_loader)):
-            loss = self.forward(data)
-            Loss.update(loss.item)
+            with torch.no_grad():
+                loss = self.forward(data)
+            Loss.update(loss.item())
 
-        loss_dict['Loss/total_loss'] = "\t{:s} {:.4f} ({:.4f})".format("total_loss", Loss.avg, Loss.avg)
+        loss_dict['Loss/total_loss'] = ("\t{:s} {:.4f} ({:.4f})".format("total_loss", Loss.avg, Loss.avg), Loss.avg)
         elapsed = int(time.time() - global_time)
         elapsed = str(datetime.timedelta(seconds=elapsed))
-        self.log(loss_dict, it, pbar, elapsed=elapsed)
+        self.log(loss_dict, it, pbar, elapsed=elapsed, val=True)
 
     def forward(self, data):
         """

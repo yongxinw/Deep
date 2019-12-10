@@ -3,6 +3,7 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 import torch
 from PIL import Image
+from utils import device
 
 import json
 import os
@@ -20,7 +21,8 @@ class DummyDataset(Dataset):
         return self.length
 
     def __getitem__(self, index):
-        return {"image": torch.randn(3, 500, 500), "grid_label": torch.randn(1, 2048)}
+        return {"image": torch.randn(3, 500, 500),
+                "grid_label": torch.randint(0, 1, size=(4096,)).float()}
 
 
 class VPDataset(Dataset):

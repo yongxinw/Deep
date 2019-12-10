@@ -12,6 +12,7 @@ if __name__ == "__main__":
     parser.add_argument("--experiment_name", type=str, help="name of the current experiment", required=True)
     parser.add_argument("--resume", action="store_true", help="whether to resume from previous checkpoint")
     parser.add_argument("--model_resume_path", type=str, help="which model to resume from")
+    parser.add_argument("--dummy", action="store_true", help="whether to use dummy data")
 
     # Parse args and load configs
     args = parser.parse_args()

@@ -49,7 +49,7 @@ class Trainer:
                                                   batch_size=self.config.batch_size,
                                                   num_workers=self.config.num_workers,
                                                   shuffle=self.config.shuffle,
-                                                  dummy=True)
+                                                  dummy=self.args.dummy)
         return train_loader, val_loader
 
     def setup_logs(self):

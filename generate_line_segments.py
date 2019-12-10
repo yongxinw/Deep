@@ -84,7 +84,7 @@ def generate_one_cluster(num_direction):
                 new_v = new_v/np.linalg.norm(new_v)
                 break
         directions.append(np.reshape(new_v, -1))
-
+    directions = directions[:num_direction]        
     ls_p1s = np.zeros((0,3))
     ls_p2s = np.zeros((0,3))
 

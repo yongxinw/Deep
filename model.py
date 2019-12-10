@@ -24,6 +24,8 @@ class DeepVP(nn.Module):
             raise NotImplementedError
         fc_out = int(np.prod(grid_resolution))
 
+        self.conv1 = nn.Conv2d(1, 3, kernel_size=3, stride=1, padding=1)
+
         self.feature_extractor = resnet_func(pretrained=resnet_pretrained,
                                              use_bn=resnet_usebn)
         self.fc = nn.Sequential(
@@ -33,6 +35,7 @@ class DeepVP(nn.Module):
         )
 
     def forward(self, x):
+        x = self.conv1(x)
         x = self.feature_extractor(x)
         x = self.fc(x)
         return x

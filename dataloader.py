@@ -21,7 +21,7 @@ class DummyDataset(Dataset):
         return self.length
 
     def __getitem__(self, index):
-        return {"image": torch.randn(3, 500, 500),
+        return {"image": torch.randn(1, 500, 500),
                 "grid_label": torch.randint(0, 1, size=(4096,)).float()}
 
 

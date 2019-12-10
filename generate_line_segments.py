@@ -321,62 +321,6 @@ def clipping_ls_to_box(ls_p1, ls_p2, direction_assignment, box):
     return new_ls_p1, new_ls_p2, new_direction_assignment
 
 
-
-
-
-def main(num_process, num_images_per_direction, output_folder):
-    def worker(arg):
-        idx, direction, output_folder = arg
-        ls_p1s, ls_p2s, direction_assignment = generate_one_cluster(direction)
-        complete = 0
-        return_dict = {}
-        while complete < 100:
-            R,t = generate_camera_extrinsics()
-            K = generate_camera_intrinsic(t)
-            valid_view, ls_p1s_2d, ls_p2s_2d, direction_assignment_2d, vps = proj2camera(ls_p1s, ls_p2s, direction_assignment, K, R, t)
-            if not valid_view:
-                continue
-            num_ls = ls_p1s_2d.shape[0]
-            leq = np.cross(np.hstack((ls_p1s_2d, np.ones((num_ls,1)))), np.hstack((ls_p2s_2d, np.ones((num_ls,1)))))
-
-            img = sphere_mapping.sphere_line_plot(leq, 500)
-            img = Image.fromarray(img)
-            img_name = '{}_{}.jpg'.format(idx, complete)
-            img.save(os.path.join(output_folder,))
-            return_dict[img_name] = inverse_proj_vp(vps)
-            complete = complete + 1
-        return return_dict
-
-
-    def wrapMyFunc(arg):
-        return arg, worker(arg)
-
-
-    def update(arg):
-        (i,ans) = arg
-        res[i] = return_dict
-        pbar.update()
-
-    pool = Pool(num_process)
-    num_point_sets = num_images_per_direction//100 #every point set has 100 view set up
-    
-    N = num_point_sets * 6 #total point set = num_point set * num of directions
-    res = [None] * N #point sets result
-    pbar = tqdm(total=N)
-    for i in range(N):
-        direction = i//num_point_sets + 1 #get the number of direction
-        pool.apply_async(wrapMyFunc, args=(i,direction,output_folder), callback=update)
-
-    pool.close()
-    pool.join()
-    pbar.close()
-
-    #Dump the json
-    json_dict = {}
-    json_dict['imgs'] = dict(ChainMap(*res))
-    with open('label.json', 'w') as f:
-        json.dump(json_dict, f)
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser("Training image generate_random_direction")
     parser.add_argument("--debug", action='store_true')
@@ -426,11 +370,62 @@ if __name__ == '__main__':
             print(vps)
             print(inverse_proj_vp(vps))
     else:
-        main(args.num_process, args.num_images_per_direction, args.output_folder)
+
+        num_process = args.num_process
+        num_images_per_direction = args.num_images_per_direction
+        output_folder = args. output_folder
+        
+        def myfunc(*args):
+            idx, direction, output_folder = args
+            ls_p1s, ls_p2s, direction_assignment = generate_one_cluster(direction)
+            complete = 0
+            return_dict = {}
+
+            while complete < 100:
+                R,t = generate_camera_extrinsics()
+                K = generate_camera_intrinsic(t)
+                valid_view, ls_p1s_2d, ls_p2s_2d, direction_assignment_2d, vps = proj2camera(ls_p1s, ls_p2s, direction_assignment, K, R, t)
+                if not valid_view:
+                    continue
+                num_ls = ls_p1s_2d.shape[0]
+                leq = np.cross(np.hstack((ls_p1s_2d, np.ones((num_ls,1)))), np.hstack((ls_p2s_2d, np.ones((num_ls,1)))))
+
+                img = sphere_mapping.sphere_line_plot(leq, 500)
+                img = Image.fromarray(img)
+                img_name = '{}_{}.jpg'.format(idx, complete)
+                img.save(os.path.join(output_folder,img_name))
+                return_dict[img_name] = inverse_proj_vp(vps)
+                complete = complete + 1
+            return return_dict
 
 
+        def wrapMyFunc(*args):
+            i,direction,output_folder = args
+            return i, myfunc(i, direction,output_folder)
 
+        def update(*args):
+            # note: input comes from async `wrapMyFunc`
+            (i, ans) = args[0]
+            res[i] = ans  # put answer into correct index of result list
+            pbar.update()
+        num_point_sets = num_images_per_direction//100 #every point set has 100 view set up
 
-# ax.set_aspect('equal')
-# plt.show()
+        N = num_point_sets * 6 #total point set = num_point set * num of directions
+        res = [None] * N #point sets result
+        pbar = tqdm(total=N)
+        print("NUM poinset:", num_point_sets)
+        print("N:", N)
+        pool = Pool(num_process)
+        for i in range(N):
+            direction = i//num_point_sets + 1 #get the number of direction
+            pool.apply_async(wrapMyFunc, args=(i,direction,output_folder), callback=update)
+        pool.close()
+        pool.join()
+        
+        pbar.close()
 
+        #Dump the json
+        json_dict = {}
+        json_dict['imgs'] = dict(ChainMap(*res))
+        with open('label.json', 'w') as f:
+           json.dump(json_dict, f, sort_keys=True, indent=4)

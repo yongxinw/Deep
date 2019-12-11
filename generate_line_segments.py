@@ -22,30 +22,30 @@ def generate_random_direction():
 max_num_direction = 6
 min_camera_distance = 2
 max_camera_distance = 4
-min_focal_length = 0.3
+min_focal_length = 0.2
 color = 'rgbcmyk'
 
 total_direction = []
 
-min_clusters = 2
-max_clusters = 6
-min_ls = 1
+min_clusters = 4
+max_clusters = 20
+min_ls = 5
 max_ls = 10
-displacement_std = 0.3 
+displacement_std = 0.15
 
-colinear_prob = 0.5
-min_colinear_ls = 1
-max_colinear_ls = 3
+colinear_prob = 0.7
+min_colinear_ls = 5
+max_colinear_ls = 10
 colinear_displacement_std = 1
 colinear_noise_std = 0.001
 
-min_ls_length = 0.1
-max_ls_length = 1
+min_ls_length = 0.2
+max_ls_length = 0.5
 
-min_noise_num = 10
-max_noise_num = 20
+min_noise_percent = 0.01
+max_noise_percent = 0.05
 
-final_min_num_ls = 20
+final_min_num_ls = 100
 final_success_rate = 0.7
 final_min_num_vps = 1
 
@@ -120,7 +120,8 @@ def generate_one_cluster(num_direction, noise=True):
 
     #Place extra noise
     if noise:
-        num_noise = np.random.randint(10, 20, 1)[0]
+        percent = np.random.uniform(min_noise_percent, max_noise_percent, 1)[0]
+        num_noise = int(percent * ls_p1s.shape[0]) 
         n_p1 = np.random.uniform(-1, 1, (num_noise, 3))
         n_p2 = np.random.uniform(-1, 1, (num_noise, 3))
 
@@ -205,7 +206,7 @@ def proj2camera(ls_p1s, ls_p2s, direction_assignment, K, R, t, visualize = False
         ax.set_title('num_ls {}'.format(ls_p1s_c.shape[0]))
         plt.show(block = False)
 
-    valid_view = ls_p1s_c.shape[0] > 20
+    valid_view = ls_p1s_c.shape[0] > final_min_num_ls
     vps = {}
     for i in range(max_num_direction):
         num_ls_per_d = np.count_nonzero(direction_assignment == i)
@@ -244,7 +245,6 @@ def proj2camera(ls_p1s, ls_p2s, direction_assignment, K, R, t, visualize = False
         plt.show()
 
     valid_view = valid_view and len(vps) >= final_min_num_vps
-
     return valid_view, ls_p1s_c, ls_p2s_c, direction_assignment, vps
 
 def inverse_proj_vp(vps):
@@ -341,23 +341,25 @@ if __name__ == '__main__':
 
 
         #print(ls_p1s[0][0])
-        for i in range(ls_p1s.shape[0]):
-            ax.plot([ls_p1s[i][0], ls_p2s[i][0]], [ls_p1s[i][1], ls_p2s[i][1]], [ls_p1s[i][2], ls_p2s[i][2]], color = color[direction_assignment[i]])
-        ax.set_aspect('equal')
-        # plt.show()
 
 
         for i in range(10):
+            for i in range(ls_p1s.shape[0]):
+                ax.plot([ls_p1s[i][0], ls_p2s[i][0]], [ls_p1s[i][1], ls_p2s[i][1]], [ls_p1s[i][2], ls_p2s[i][2]], color = color[direction_assignment[i]])
+            ax.set_aspect('equal')
+
             R,t = generate_camera_extrinsics()
             K = generate_camera_intrinsic(t)
             ax.quiver(t[0,0], t[0,1], t[0,2], R[0,0], R[0,1], R[0,2], length=K[0,0], normalize=True, color = 'r')
             ax.quiver(t[0,0], t[0,1], t[0,2], R[1,0], R[1,1], R[1,2], length=K[0,0], normalize=True, color = 'g')
             ax.quiver(t[0,0], t[0,1], t[0,2], R[2,0], R[2,1], R[2,2], length=K[0,0], normalize=True, color = 'b')
-            plt.show(block=False)
+            plt.show()
             
 
-            valid_view, ls_p1s_2d, ls_p2s_2d, direction_assignment_2d, vps = proj2camera(ls_p1s, ls_p2s, direction_assignment, K, R, t)
-
+            valid_view, ls_p1s_2d, ls_p2s_2d, direction_assignment_2d, vps = proj2camera(ls_p1s, ls_p2s, direction_assignment, K, R, t, True)
+            if not valid_view:
+                print("Not valid pass")
+                continue
             num_ls = ls_p1s_2d.shape[0]
             leq = np.cross(np.hstack((ls_p1s_2d, np.ones((num_ls,1)))), np.hstack((ls_p2s_2d, np.ones((num_ls,1)))))
             plt.figure()

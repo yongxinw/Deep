@@ -51,7 +51,7 @@ final_min_num_vps = 1
 
 
 
-def generate_one_cluster(num_direction):
+def generate_one_cluster(num_direction, noise=True):
 
     #Generate direction
     v1 = generate_random_direction()
@@ -119,15 +119,16 @@ def generate_one_cluster(num_direction):
                 #ls_p2s.append(ls_p2)
 
     #Place extra noise
-    num_noise = np.random.randint(10, 20, 1)[0]
-    n_p1 = np.random.uniform(-1, 1, (num_noise, 3))
-    n_p2 = np.random.uniform(-1, 1, (num_noise, 3))
+    if noise:
+        num_noise = np.random.randint(10, 20, 1)[0]
+        n_p1 = np.random.uniform(-1, 1, (num_noise, 3))
+        n_p2 = np.random.uniform(-1, 1, (num_noise, 3))
 
 
-    ls_p1s = np.vstack((ls_p1s, n_p1))
-    ls_p2s = np.vstack((ls_p2s, n_p2))
+        ls_p1s = np.vstack((ls_p1s, n_p1))
+        ls_p2s = np.vstack((ls_p2s, n_p2))
 
-    direction_assignment = direction_assignment + [-1] * num_noise
+        direction_assignment = direction_assignment + [-1] * num_noise
 
     return ls_p1s, ls_p2s, np.array(direction_assignment)
 
